@@ -259,7 +259,6 @@
                     if (newMessageResponse.status !== 200) {
                         CVRGUI.hideMenus();
                         var responseText = newMessageResponse.responseText;
-                        console.log(newMessageResponse)
                         var shownResponseText = responseText.length < 100 ? ' ' + responseText : '';
                         handleError('Failed calling close API.' + shownResponseText, newMessageResponse);
                         return
@@ -273,8 +272,6 @@
             });
         },
         editDuplicateList: function(_endpoint, _payload) {
-            console.log(_endpoint)
-            console.log(_payload)
             GM.xmlHttpRequest({
                 method: 'POST',
                 url: _endpoint,
