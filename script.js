@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.1.0
-// @description    Management of duplicate targets, automatic closure + editing of duplicate list
+// @version        0.0.1
+// @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
 // @exclude        *://chat.stackoverflow.com/*
@@ -64,7 +64,7 @@
     //      ['name', [ { qid: 1234, title: "title" }, ...]],
     // ]
     let DUPELINKS = []
-    
+
     function addSlinkClassToAllLinkChildren(el) {
         el.find('a').addClass('s-link');
     }
@@ -114,7 +114,7 @@
         '        width: 100%;' +
         '        display: table;' +
         '    }' +
-        '    .so-hammer dl label, .so-hammer dl form {' +
+        '    .so-hammer dl label, .so-hammer dl .sowhlCloseSection {' +
         '        display: table-cell;' +
         '    }' +
         '    .so-hammer dl button {' +
@@ -128,14 +128,14 @@
         '        padding: 0px 15px;' +
         '        padding-bottom: 15px;' +
         '    }' +
-        '    .so-hammer dd > div > form {' +
+        '    .so-hammer dd > div > .sowhlCloseSection {' +
         '        white-space: nowrap;' +
         '    }' +
-        '    .so-hammer dd > div > form > input {' +
+        '    .so-hammer dd > div > .sowhlCloseSection > input {' +
         '        display: inline-block;' +
         '        vertical-align: middle;' +
         '    }' +
-        '    .so-hammer dd > div > form > input[type="text"] {' +
+        '    .so-hammer dd > div > .sowhlCloseSection > input[type="text"] {' +
         '        width: 300px;' +
         '        margin-right: 5px;' +
         '    }' +
@@ -203,7 +203,7 @@
         this.item = $('' +
             '<dd>' +
             '    <div class="sowhlItemMainDiv" style="display:none">' +
-            '        <form>' +
+            '        <div class="sowhlCloseSection">' +
             '            <div class="sowhlChooseMnemonicContainer">' +
             '                <label class="sowhlChooseMnemonic">' +
             '                    Choose: ' +
@@ -213,7 +213,7 @@
             '                </label>' +
             '            </div>' +
             '            <button class="sowhlCloseBtn" disabled="true" style="width:180px">Close</button>' +
-            '        </form>' +
+            '        </div>' +
             '        <button class="sowhlManageLinks sowhlLinkButton" style="margin-top:20px; padding-left:0">Manage</button>' +
             '        <div class="sowhlManageContainer">' +
             '            <div class="sowhlAddItemContainer">' +
@@ -346,7 +346,7 @@
             this.clearError()
         },
         hammerQuestion: function() {
-            var idx = this.targetSelect.val();
+            let idx = this.targetSelect.val();
             const targets = DUPELINKS[idx][1].map((v) => v.qid)
             const fkey = StackExchange.options.user.fkey
 
@@ -384,13 +384,13 @@
                 data: _payload,
                 onload: (newMessageResponse) => {
                     if (newMessageResponse.status !== 200) {
-                        this.hideMenu();
+                        this.gui.hideMenu();
                         var responseText = newMessageResponse.responseText;
                         var shownResponseText = responseText.length < 100 ? ' ' + responseText : '';
                         handleError('Failed calling close API.' + shownResponseText, newMessageResponse);
                         return
                     }
-                    this.hideMenu();
+                    this.gui.hideMenu();
                     _callback()
                 },
                 onerror: (error) => {
