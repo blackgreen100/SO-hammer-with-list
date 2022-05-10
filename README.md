@@ -23,6 +23,6 @@ You must run this script as a user with a gold tag badge in one of the question'
 
 ### TODOs and improvements
 
-- Automate saving and editing the duplicate targets
-- Clean up the code
+- Automate <strike>saving and</strike> editing the duplicate targets
+- Clean up the code even more
 - Import/export duplicate targets
