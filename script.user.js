@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.3.0
+// @version        0.4.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -251,6 +251,9 @@
         targetSelect.val('choose');
         this.populateSelectOptions();
 
+        // dependency for populateDuplicateList
+        this.addThisQuestion = $('.sowhlAddThis', item)
+
         this.targetSelect.on('change', () => {
             if(!this.manageLinksVisible) {
                 closeButton.removeAttr('disabled')
@@ -295,33 +298,6 @@
                 addItemButton.attr('disabled', 'disabled')
             }
         })
-
-        // Don't allow to add deleted questions to link targets
-        if(!this.gui.questionStatus.isDeleted) {
-            this.addThisQuestion = $('.sowhlAddThis', item)
-            this.addThisQuestion.on('click', () => {
-                const idx = targetSelect.val();
-                if(!idx || isNaN(idx)) {
-                    this.showError('Please select a target first')
-                    return
-                }
-                if(DUPELINKS[idx][1].length >= 5) {
-                    this.showError('Cannot have more than 5 originals')
-                    return
-                }
-
-                const qid = this.gui.questionId
-                if(DUPELINKS[idx][1].some((v) => v.qid === qid)) {
-                    this.showError('This question is already included in this target')
-                    return
-                }
-                const title = $('#question-header h1 a').first().text();
-                DUPELINKS[idx][1].push({ qid, title })
-                storeOriginals()
-                this.populateDuplicateList()
-            })
-        }
-        // todo: else should allow this button to remove the question
 
         this.delGroup = $('.sowhlDelGroup', item)
         this.delGroup.on('click', () => {
@@ -442,21 +418,69 @@
             }
             this.clearDuplicateList()
             this.clearError()
+            let currentQuestionInList = false
             DUPELINKS[idx][1].forEach((v) => {
+                // check whether the current question is included in a dupe list
+                // this flag is used to change the behavior of the "Add this question" button to remove it instead
+                if(v.qid === this.gui.questionId) {
+                    currentQuestionInList = true
+                }
                 this.duplicateList.append(`<li><a href="${host + '/questions/' + v.qid}" target="_blank" rel="noopener noreferrer">${v.title}</a></li>`)
             })
+            if(!currentQuestionInList && !this.gui.questionStatus.isDeleted) {
+                this.addThisQuestion.html('Add this question to selected targets')
+                this.addThisQuestion.on('click', this.addQuestionToList.bind(this))
+            } else {
+                this.addThisQuestion.html('Remove this question from the selected targets')
+                this.addThisQuestion.on('click', this.removeQuestionFromList.bind(this))
+            }
         },
         clearDuplicateList: function() {
             this.duplicateList.empty()
-        },
-        storeItem: function() {
-
         },
         showError: function(message) {
             this.errMsg.text(message)
         },
         clearError: function() {
             this.errMsg.text('')
+        },
+        addQuestionToList: function() {
+            const idx = this.targetSelect.val();
+            if(!idx || isNaN(idx)) {
+                this.showError('Please select a target first')
+                return
+            }
+            if(DUPELINKS[idx][1].length >= 5) {
+                this.showError('Cannot have more than 5 originals')
+                return
+            }
+
+            const qid = this.gui.questionId
+            if(DUPELINKS[idx][1].some((v) => v.qid === qid)) {
+                this.showError('This question is already included in this target')
+                return
+            }
+            const title = $('#question-header h1 a').first().text();
+            DUPELINKS[idx][1].push({ qid, title })
+            storeOriginals()
+            this.populateDuplicateList()
+        },
+        removeQuestionFromList: function() {
+            const idx = this.targetSelect.val();
+            if(!idx || isNaN(idx)) {
+                this.showError('Please select a target first')
+                return
+            }
+
+            const qid = this.gui.questionId
+            const j = DUPELINKS[idx][1].findIndex((v) => v.qid === qid)
+            if(j === -1) {
+                this.showError('This question is not included in this target')
+                return
+            }
+            DUPELINKS[idx][1].splice(j, 1)
+            storeOriginals()
+            this.populateDuplicateList()
         }
     });
 
