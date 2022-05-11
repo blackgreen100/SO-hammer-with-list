@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.0.1
+// @version        0.2.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
