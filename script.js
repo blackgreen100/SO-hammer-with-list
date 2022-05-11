@@ -13,8 +13,6 @@
 // @require        https://code.jquery.com/jquery-3.5.0.min.js
 // @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
 // @require        https://cdn.jsdelivr.net/gh/makyen/extension-and-userscript-utilities@94cbac04cb446d35dd025974a7575b25b9e134ca/executeInPage.js
-// @require        https://github.com/Aran-Fey/userscript-lib/raw/60f9b285091e93d3879c7e94233192b7ab370821/userscript_lib.js
-// @require        https://github.com/Aran-Fey/SE-userscript-lib/raw/929a2b865752ffa8496c33f437a3a34af32eccba/SE_userscript_lib.js
 // @grant          GM_setValue
 // @grant          GM_getValue
 // @grant          GM.setValue
@@ -24,6 +22,8 @@
 // @grant          GM_xmlhttpRequest
 // @grant          GM.openInTab
 // @grant          GM.xmlHttpRequest
+// @downloadURL    https://raw.githubusercontent.com/blackgreen100/SO-hammer-with-list/master/script.js
+// @updateURL      https://raw.githubusercontent.com/blackgreen100/SO-hammer-with-list/master/script.js
 // ==/UserScript==
 /* jshint jquery:    true */
 /* globals GM, StackExchange, $, makyenUtilities */ // eslint-disable-line no-unused-vars, no-redeclare
@@ -48,15 +48,15 @@
             return DUPELINKS;
         }
         const key = getStorageKey();
-        const originalsJson = await UserScript.getValue(key, '[]');
+        const originalsJson = await GM.getValue(key, '[]');
         DUPELINKS = JSON.parse(originalsJson);
-        return DUPELINKS;
+        return DUPELINKS.sort((a, b) => a[0].localeCompare(b[0]))
     }
 
     async function storeOriginals() {
         const key = getStorageKey();
         const linksJson = JSON.stringify(DUPELINKS);
-        return UserScript.setValue(key, linksJson);
+        return GM.setValue(key, linksJson);
     }
 
     // DUPELINKS model:
