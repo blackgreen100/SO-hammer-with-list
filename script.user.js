@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.2.0
+// @version        0.3.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -239,7 +239,7 @@
         let item = this.item;
 
         let closeButton = this.closeButton = $('.sowhlCloseBtn', item);
-        if(this.gui.isClosed) {
+        if(this.gui.questionStatus.isClosed || this.gui.questionStatus.isLocked || this.gui.questionStatus.isDeleted) {
             closeButton.hide();
         } else {
             this.closeButton.on('click', () => {
@@ -296,28 +296,32 @@
             }
         })
 
-        this.addThisQuestion = $('.sowhlAddThis', item)
-        this.addThisQuestion.on('click', () => {
-            const idx = targetSelect.val();
-            if(!idx || isNaN(idx)) {
-                this.showError('Please select a target first')
-                return
-            }
-            if(DUPELINKS[idx][1].length >= 5) {
-                this.showError('Cannot have more than 5 originals')
-                return
-            }
+        // Don't allow to add deleted questions to link targets
+        if(!this.gui.questionStatus.isDeleted) {
+            this.addThisQuestion = $('.sowhlAddThis', item)
+            this.addThisQuestion.on('click', () => {
+                const idx = targetSelect.val();
+                if(!idx || isNaN(idx)) {
+                    this.showError('Please select a target first')
+                    return
+                }
+                if(DUPELINKS[idx][1].length >= 5) {
+                    this.showError('Cannot have more than 5 originals')
+                    return
+                }
 
-            const qid = this.gui.questionId
-            if(DUPELINKS[idx][1].some((v) => v.qid === qid)) {
-                this.showError('This question is already included in this target')
-                return
-            }
-            const title = $('#question-header h1 a').first().text();
-            DUPELINKS[idx][1].push({ qid, title })
-            storeOriginals()
-            this.populateDuplicateList()
-        })
+                const qid = this.gui.questionId
+                if(DUPELINKS[idx][1].some((v) => v.qid === qid)) {
+                    this.showError('This question is already included in this target')
+                    return
+                }
+                const title = $('#question-header h1 a').first().text();
+                DUPELINKS[idx][1].push({ qid, title })
+                storeOriginals()
+                this.populateDuplicateList()
+            })
+        }
+        // todo: else should allow this button to remove the question
 
         this.delGroup = $('.sowhlDelGroup', item)
         this.delGroup.on('click', () => {
@@ -457,12 +461,12 @@
     });
 
     var guiCount = 0;
-    function Gui(_id, _isPostMenuFlex, _isClosed) {
+    function Gui(_id, _isPostMenuFlex, _status) {
         guiCount++;
         var gui = this; // eslint-disable-line consistent-this
         this.guiType = 'question'; // todo: probably not needed
         this.questionId = _id;
-        this.isClosed = _isClosed;
+        this.questionStatus = _status;
         this.isPostMenuFlex = _isPostMenuFlex;
         //A <span> that contains the entire GUI.
         this.wrapper = $(`<${_isPostMenuFlex ? 'div' : 'span'} class="sowhlui${_isPostMenuFlex ? ' flex--item' : ''} hammer" data-gui-type="question" data-gui-id="${_id}"/>`);
@@ -626,17 +630,18 @@
                 return;
             }
             const qc = getQuestionContext($this);
-            if(isQuestionDeleted(qc) || isPostLocked(qc)) {
-                return;
+            const qstatus = {
+                isClosed: isQuestionClosed(qc),
+                isDeleted: isQuestionDeleted(qc),
+                isLocked: isPostLocked(qc),
             }
-
 
             if (!$('.sowhlui.hammer', this).length) {
                 //No sowhlui on this post yet
                 const newGui = new Gui(
                     $this.closest('.question').attr(`data-questionid`),
                     $this.is('.js-post-menu > .d-flex'),
-                    isQuestionClosed(qc)
+                    qstatus
                 );
                 if ($this.is('.post-menu')) {
                     $this.append('<span class="lsep">|</span>'); //separator between each .post-menu .post-menu-container item
@@ -708,13 +713,14 @@
         if (isSuggestedEditReviewPage && element.closest('.s-page-title').length) {
             return $('.js-review-task');
         }
-        const context = $el.closest('#mainbar, .review-content, .mainbar, #mainbar-full, .show-original, .sowhlFakeQuestionContext, body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td, .js-review-task, .makyen-flag-post-preview-container');
+        const context = $el.closest('#mainbar, .review-content, .mainbar, #mainbar-full, .show-original, body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td, .js-review-task, .makyen-flag-post-preview-container');
         if (!context.length) {
             //A containing element which we recognize as the context for the element's question wasn't found.
             return $(document);
         }
-        if (context.is('.sowhlFakeQuestionContext') || context.find('.question').length) {
-            return context;
+        const q = context.find('.question')
+        if (q.length) {
+            return q.first();
         }
         //There was no .question in what was found, try higher up the DOM.
         return getQuestionContext(context.parent());
