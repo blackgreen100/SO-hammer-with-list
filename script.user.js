@@ -22,8 +22,8 @@
 // @grant          GM_xmlhttpRequest
 // @grant          GM.openInTab
 // @grant          GM.xmlHttpRequest
-// @downloadURL    https://raw.githubusercontent.com/blackgreen100/SO-hammer-with-list/master/script.js
-// @updateURL      https://raw.githubusercontent.com/blackgreen100/SO-hammer-with-list/master/script.js
+// @downloadURL    https://raw.githubusercontent.com/blackgreen100/SO-hammer-with-list/master/script.user.js
+// @updateURL      https://raw.githubusercontent.com/blackgreen100/SO-hammer-with-list/master/script.user.js
 // ==/UserScript==
 /* jshint jquery:    true */
 /* globals GM, StackExchange, $, makyenUtilities */ // eslint-disable-line no-unused-vars, no-redeclare
