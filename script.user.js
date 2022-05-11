@@ -327,6 +327,7 @@
                 return
             }
             DUPELINKS.splice(idx, 1)
+            storeOriginals()
             this.clearDuplicateList()
             this.populateSelectOptions()
         })
