@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.5.0
+// @version        0.6.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -239,11 +239,20 @@
         let item = this.item;
 
         let closeButton = this.closeButton = $('.sowhlCloseBtn', item);
-        if(this.gui.questionStatus.isClosed || this.gui.questionStatus.isLocked || this.gui.questionStatus.isDeleted) {
-            closeButton.hide();
+        // if duplicate, allow editing dupe list only
+        // if it's otherwise not possible to cast a close vote, hide close button
+        // if open, allow hammering
+        if(this.gui.questionStatus.isDuplicate) {
+            this.closeButton.html('Edit links')
+            this.closeButton.on('click', () => {
+                this.editDuplicateList()
+            })
+        } else if(this.gui.questionStatus.isClosed || this.gui.questionStatus.isLocked || this.gui.questionStatus.isDeleted) {
+            this.closeButton.hide();
         } else {
             this.closeButton.on('click', () => {
-                this.hammerQuestion()
+                // hammer question
+                this.voteToClose(() => { this.editDuplicateList() })
             })
         }
 
@@ -329,18 +338,15 @@
             this.manageLinksVisible = false
             this.clearError()
         },
-        hammerQuestion: function() {
-            let idx = this.targetSelect.val();
-            const targets = DUPELINKS[idx][1].map((v) => v.qid)
+        voteToClose: function(_callback) {
             const fkey = StackExchange.options.user.fkey
+            const idx = this.targetSelect.val();
 
-            const closeEndpoint = host + '/flags/questions/' + this.gui.questionId + '/close/add'
-            const originalsEndpoint = host + '/questions/originals/' + this.gui.questionId + '/save-originals'
-
-            const closePayload = '' +
+            const _endpoint = host + '/flags/questions/' + this.gui.questionId + '/close/add'
+            const _payload = '' +
                 'closeReasonId=Duplicate' +
                 '&' +
-                'duplicateOfQuestionId=' + targets[0] +
+                'duplicateOfQuestionId=' + DUPELINKS[idx][1][0].qid +
                 '&' +
                 'siteSpecificOtherText=placeholder' +
                 '&' +
@@ -348,17 +354,6 @@
                 '&' +
                 'fkey=' + fkey
 
-            const originalsPayload = '' +
-                'originalsIdsJson=' + encodeURIComponent('[' + targets.join(',') + ']') +
-                '&' +
-                'fkey=' + fkey
-
-            this.voteToClose(closeEndpoint, closePayload, () => {
-                this.editDuplicateList(originalsEndpoint, originalsPayload)
-            })
-
-        },
-        voteToClose: function(_endpoint, _payload, _callback) {
             GM.xmlHttpRequest({
                 method: 'POST',
                 url: _endpoint,
@@ -366,23 +361,35 @@
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                 },
                 data: _payload,
-                onload: (newMessageResponse) => {
-                    if (newMessageResponse.status !== 200) {
+                onload: (_response) => {
+                    if (_response.status !== 200) {
                         this.gui.hideMenu();
-                        var responseText = newMessageResponse.responseText;
+                        var responseText = _response.responseText;
                         var shownResponseText = responseText.length < 100 ? ' ' + responseText : '';
-                        handleError('Failed calling close API.' + shownResponseText, newMessageResponse);
+                        handleError('Failed calling close API.' + shownResponseText, _response);
                         return
                     }
                     this.gui.hideMenu();
-                    _callback()
+                    if(_callback) {
+                        _callback()
+                    }
                 },
                 onerror: (error) => {
                     handleError('Got an error when calling close API.', error);
                 },
             });
         },
-        editDuplicateList: function(_endpoint, _payload) {
+        editDuplicateList: function() {
+            const fkey = StackExchange.options.user.fkey
+            const idx = this.targetSelect.val();
+            const _targetIds = DUPELINKS[idx][1].map((v) => v.qid)
+
+            const _endpoint = host + '/questions/originals/' + this.gui.questionId + '/save-originals'
+            const _payload = '' +
+                'originalsIdsJson=' + encodeURIComponent('[' + _targetIds.join(',') + ']') +
+                '&' +
+                'fkey=' + fkey
+
             GM.xmlHttpRequest({
                 method: 'POST',
                 url: _endpoint,
@@ -659,6 +666,7 @@
             const qc = getQuestionContext($this);
             const qstatus = {
                 isClosed: isQuestionClosed(qc),
+                isDuplicate: isQuestionDuplicate(qc),
                 isDeleted: isQuestionDeleted(qc),
                 isLocked: isPostLocked(qc),
             }
@@ -700,6 +708,10 @@
         const closeButton = $('.js-close-question-link', questionContext);
         const closeButtonIsClose = closeButton.attr('data-isclosed') || closeButton.text().toLowerCase().indexOf('reopen') > -1;
         return pre201910CloseBannerExists || post201910CloseBannerExists || closeButtonIsClose;
+    }
+
+    function isQuestionDuplicate(questionContext) {
+        return $('#question-header a.question-hyperlink').text().endsWith('[duplicate]')
     }
 
     function anyElementTextStartsWithClosed($obj) {
