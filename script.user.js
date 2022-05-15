@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.4.0
+// @version        0.5.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -306,10 +306,13 @@
                 this.showError('Please select a target first')
                 return
             }
-            DUPELINKS.splice(idx, 1)
-            storeOriginals()
-            this.clearDuplicateList()
-            this.populateSelectOptions()
+            const doDel = confirm('Are you sure you want to delete the ' + DUPELINKS[idx][0] + ' group?')
+            if(doDel) {
+                DUPELINKS.splice(idx, 1)
+                storeOriginals()
+                this.clearDuplicateList()
+                this.populateSelectOptions()
+            }
         })
 
         this.errMsg = $('.sowhlErrMsg', item)
