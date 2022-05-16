@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.6.1
+// @version        0.7.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -176,18 +176,14 @@
         '        border: none;' +
         '        background: none;' +
         '    }' +
-        '    .sowhlOptionsList  {' +
-        '    }' +
-        '    .sowhlReasonRow {' +
+        '    .so-hammer .sowhlCloseBtnContainer {' +
         '        display: flex;' +
-        '        width: 100%;' +
+        '        align-items: center;' +
+        '        height: 20px;' +
+        '        margin-top: 5px;' +
         '    }' +
-        '    .sowhlReasonRow input[type="text"] {' +
-        '        flex: auto;' +
-        '        margin-right: 2vw;' +
-        '    }' +
-        '    .sowhlReasonRow input[type="submit"] {' +
-        '        flex: initial;' +
+        '    .so-hammer .sowhlCloseBtnContainer > * {' +
+        '        margin-right: 10px;' +
         '    }' +
         '    .so-hammer .sowhlChooseMnemonicContainer {' +
         '        display: block;' +
@@ -212,7 +208,10 @@
             '                    </select>' +
             '                </label>' +
             '            </div>' +
-            '            <button class="sowhlCloseBtn" disabled="true" style="width:180px">Close</button>' +
+            '            <div class="sowhlCloseBtnContainer">' +
+            '               <button class="sowhlCloseBtn" disabled="true" style="width:180px">Close</button>' +
+            '               <label class="sowhlCloseCheckboxLabel" style="padding:0" title="Check to post duplicate list as comment"><input class="sowhlCloseCheckbox" type="checkbox">Post as comment</label>' +
+            '            </div>' +
             '        </div>' +
             '        <button class="sowhlManageLinks sowhlLinkButton" style="margin-top:20px; padding-left:0">Manage</button>' +
             '        <div class="sowhlManageContainer">' +
@@ -239,21 +238,29 @@
         let item = this.item;
 
         let closeButton = this.closeButton = $('.sowhlCloseBtn', item);
+        this.postCommentCheckbox = $('.sowhlCloseCheckbox', item)
         // if duplicate, allow editing dupe list only
         // if it's otherwise not possible to cast a close vote, hide close button
         // if open, allow hammering
         if(this.gui.questionStatus.isDuplicate) {
             this.closeButton.html('Edit links')
+            // if the checkbox is not checked, normally edit the duplicate list
+            // otherwise post a formatted comment with the links
             this.closeButton.on('click', () => {
-                this.editDuplicateList()
+                (!this.postCommentCheckbox.is(':checked')) ? this.editDuplicateList() : this.postDuplicateListAsComment()
             })
         } else if(this.gui.questionStatus.isClosed || this.gui.questionStatus.isLocked || this.gui.questionStatus.isDeleted) {
+            // if no action can be meaningfully performed, hide all controls
             this.closeButton.hide();
+            this.postCommentCheckbox.hide();
         } else {
+            // on open questions, vote to close and then edit the duplicate list
+            // disallow posting the originals list as comments
             this.closeButton.on('click', () => {
                 // hammer question
                 this.voteToClose(() => { this.editDuplicateList() })
             })
+            this.postCommentCheckbox.hide();
         }
 
         let targetSelect = this.targetSelect = $('select[name="sowhlTargetList"]', item);
@@ -337,6 +344,7 @@
             this.manageContainer.hide()
             this.manageLinksVisible = false
             this.clearError()
+            this.postCommentCheckbox.prop('checked', false)
         },
         voteToClose: function(_callback) {
             const fkey = StackExchange.options.user.fkey
@@ -387,6 +395,39 @@
             const _endpoint = host + '/questions/originals/' + this.gui.questionId + '/save-originals'
             const _payload = '' +
                 'originalsIdsJson=' + encodeURIComponent('[' + _targetIds.join(',') + ']') +
+                '&' +
+                'fkey=' + fkey
+
+            GM.xmlHttpRequest({
+                method: 'POST',
+                url: _endpoint,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                },
+                data: _payload,
+                onload: function(newMessageResponse) {
+                    if (newMessageResponse.status !== 200) {
+                        var responseText = newMessageResponse.responseText;
+                        var shownResponseText = responseText.length < 100 ? ' ' + responseText : '';
+                        handleError('Failed calling originals API.' + shownResponseText, newMessageResponse);
+                        return
+                    }
+                    window.location.reload()
+                },
+                onerror: function(error) {
+                    handleError('Got an error when calling originals API.', error);
+                },
+            });
+        },
+        postDuplicateListAsComment: function() {
+            const fkey = StackExchange.options.user.fkey
+            const idx = this.targetSelect.val();
+            const _postLinks = DUPELINKS[idx][1].map((v, i) => `[${i+1}](${host}/questions/${v.qid})`)
+            const _commentText = 'Related / possible duplicate of: ' + _postLinks.join(', ')
+
+            const _endpoint = host + '/posts/' + this.gui.questionId + '/comments'
+            const _payload = '' +
+                'comment=' + encodeURIComponent(_commentText).replace(/%20/g, "+") +
                 '&' +
                 'fkey=' + fkey
 
