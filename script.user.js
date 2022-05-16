@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.7.1
+// @version        0.8.0
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -64,6 +64,11 @@
     //      ['name', [ { qid: 1234, title: "title" }, ...]],
     // ]
     let DUPELINKS = []
+
+    function moveLink(i, from, to) {
+        const links = DUPELINKS[i][1]
+        links.splice(to, 0, links.splice(from, 1)[0]);
+    };
 
     function addSlinkClassToAllLinkChildren(el) {
         el.find('a').addClass('s-link');
@@ -473,14 +478,65 @@
             this.clearDuplicateList()
             this.clearError()
             let currentQuestionInList = false
-            DUPELINKS[idx][1].forEach((v) => {
+
+            DUPELINKS[idx][1].forEach((v, i) => {
                 // check whether the current question is included in a dupe list
                 // this flag is used to change the behavior of the "Add this question" button to remove it instead
                 if(v.qid === this.gui.questionId) {
                     currentQuestionInList = true
                 }
-                this.duplicateList.append(`<li><a href="${host + '/questions/' + v.qid}" target="_blank" rel="noopener noreferrer">${v.title}</a></li>`)
+
+                const dragTarget = document.createElement('div')
+                dragTarget.style.height = '5px'
+                dragTarget.addEventListener('dragover', function(event) {
+                    event.preventDefault()
+                    event.dataTransfer.dropEffect = 'move'
+                })
+                dragTarget.addEventListener('dragenter', function(event) {
+                    event.preventDefault()
+                    this.style.border = '1.5px solid white'
+                    this.style.background = 'darkgrey'
+                })
+                dragTarget.addEventListener('dragleave', function(event) {
+                    event.preventDefault()
+                    this.style.border = 'none'
+                    this.style.background = 'none'
+                })
+                dragTarget.addEventListener('drop', (event) => {
+                    event.preventDefault()
+                    const data = JSON.parse(event.dataTransfer.getData('plain/text'))
+
+                    // the expected behavior when dragging upward is not the same as when dragging downward
+                    let dstindex = event.clientY > data.mouseY ? Math.max(0, i-1) : i
+                    if(dstindex === data.srcindex) {
+                        dragTarget.style.background = 'none'
+                        return
+                    }
+                    moveLink(idx, data.srcindex, dstindex);
+                    storeOriginals()
+                    this.populateDuplicateList()
+                })
+
+                const qlink = document.createElement('a')
+                qlink.setAttribute('href', host + '/questions/' + v.qid)
+                qlink.setAttribute('target', '_blank')
+                qlink.setAttribute('rel', 'noopener noreferrer')
+                qlink.innerText = v.title
+
+                const li = document.createElement('li')
+                li.setAttribute('draggable', 'true')
+                li.addEventListener('dragstart', (event) => {
+                    const data = {
+                        mouseY: event.clientY,
+                        srcindex: i
+                    }
+                    event.dataTransfer.setData("plain/text", JSON.stringify(data))
+                })
+                li.appendChild(qlink)
+
+                this.duplicateList.append(dragTarget, li)
             })
+
             if(!currentQuestionInList && !this.gui.questionStatus.isDeleted) {
                 this.addThisQuestion.html('Add this question to selected targets')
                 this.addThisQuestion.on('click', this.addQuestionToList.bind(this))
