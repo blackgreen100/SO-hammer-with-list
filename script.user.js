@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.7.0
+// @version        0.7.1
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -239,6 +239,7 @@
 
         let closeButton = this.closeButton = $('.sowhlCloseBtn', item);
         this.postCommentCheckbox = $('.sowhlCloseCheckbox', item)
+        let postCommentLabel = $('.sowhlCloseCheckboxLabel', item)
         // if duplicate, allow editing dupe list only
         // if it's otherwise not possible to cast a close vote, hide close button
         // if open, allow hammering
@@ -253,6 +254,7 @@
             // if no action can be meaningfully performed, hide all controls
             this.closeButton.hide();
             this.postCommentCheckbox.hide();
+            postCommentLabel.hide();
         } else {
             // on open questions, vote to close and then edit the duplicate list
             // disallow posting the originals list as comments
@@ -261,6 +263,7 @@
                 this.voteToClose(() => { this.editDuplicateList() })
             })
             this.postCommentCheckbox.hide();
+            postCommentLabel.hide();
         }
 
         let targetSelect = this.targetSelect = $('select[name="sowhlTargetList"]', item);
