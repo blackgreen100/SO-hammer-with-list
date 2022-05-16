@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.6.0
+// @version        0.6.1
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -369,10 +369,10 @@
                         handleError('Failed calling close API.' + shownResponseText, _response);
                         return
                     }
-                    this.gui.hideMenu();
                     if(_callback) {
                         _callback()
                     }
+                    this.gui.hideMenu();
                 },
                 onerror: (error) => {
                     handleError('Got an error when calling close API.', error);
