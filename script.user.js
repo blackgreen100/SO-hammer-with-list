@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.8.0
+// @version        0.8.1
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -248,7 +248,7 @@
         // if duplicate, allow editing dupe list only
         // if it's otherwise not possible to cast a close vote, hide close button
         // if open, allow hammering
-        if(this.gui.questionStatus.isDuplicate) {
+        if(this.gui.questionStatus.isDuplicate && !this.gui.questionStatus.isDeleted) {
             this.closeButton.html('Edit links')
             // if the checkbox is not checked, normally edit the duplicate list
             // otherwise post a formatted comment with the links
