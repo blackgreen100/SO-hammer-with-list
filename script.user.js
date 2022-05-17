@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.8.2
+// @version        0.8.3
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -357,6 +357,10 @@
         voteToClose: function(_callback) {
             const fkey = StackExchange.options.user.fkey
             const idx = this.targetSelect.val();
+            if(DUPELINKS[idx][1].length <= 0) {
+                this.showError('This group has no duplicate targets')
+                return
+            }
 
             const _endpoint = host + '/flags/questions/' + this.gui.questionId + '/close/add'
             const _payload = '' +
