@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name           Stack Overflow Gold Tag Badge Hammer-with-list script
-// @version        0.8.1
+// @version        0.8.2
 // @description    Placeholder
 // @author         @blackgreen
 // @include        /^https?://(?:[^/.]+\.)*(?:stackoverflow\.com)/(?:q(?:uestions)?\/\d+|review|tools|admin|users|search|\?|$)/
@@ -399,6 +399,10 @@
             const fkey = StackExchange.options.user.fkey
             const idx = this.targetSelect.val();
             const _targetIds = DUPELINKS[idx][1].map((v) => v.qid)
+            if(_targetIds.length <= 1) {
+                window.location.reload()
+                return
+            }
 
             const _endpoint = host + '/questions/originals/' + this.gui.questionId + '/save-originals'
             const _payload = '' +
